@@ -1,0 +1,42 @@
+spring:
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    hikari:
+      maximum-pool-size: 50
+      minimum-idle: 10
+
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+      password: ${REDIS_PASSWORD}
+
+  mail:
+    host: ${MAIL_HOST}
+    port: ${MAIL_PORT}
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+security:
+  jwt:
+    secret: ${JWT_SECRET}
+    access-token-expiry: ${JWT_ACCESS_TOKEN_EXPIRY:900}
+    refresh-token-expiry: ${JWT_REFRESH_TOKEN_EXPIRY:604800}
+
+logging:
+  level:
+    root: WARN
+    com.commercehub: INFO
+
+management:
+  endpoint:
+    health:
+      show-details: never
