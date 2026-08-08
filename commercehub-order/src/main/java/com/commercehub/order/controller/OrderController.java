@@ -23,6 +23,7 @@ import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -46,8 +47,9 @@ public class OrderController {
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "Place a new order")
     public ApiResponse<OrderResponse> placeOrder(@AuthenticationPrincipal User principal,
-                                                  @Valid @RequestBody PlaceOrderRequest request) {
-        return ApiResponse.ok(orderService.placeOrder(principal.getId(), request));
+                                                  @Valid @RequestBody PlaceOrderRequest request,
+                                                  @RequestHeader("Idempotency-Key") String idempotencyKey) {
+        return ApiResponse.ok(orderService.placeOrder(principal.getId(), request, idempotencyKey));
     }
 
     @GetMapping("/me")
@@ -70,8 +72,10 @@ public class OrderController {
     @PreAuthorize("hasRole('CUSTOMER')")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @Operation(summary = "Cancel own order")
-    public void cancelOrder(@AuthenticationPrincipal User principal, @PathVariable UUID orderId) {
-        orderService.cancelOrder(orderId, principal.getId());
+    public void cancelOrder(@AuthenticationPrincipal User principal,
+                            @PathVariable UUID orderId,
+                            @RequestParam(required = false) String reason) {
+        orderService.cancelOrder(orderId, principal.getId(), reason);
     }
 
     @GetMapping

@@ -127,7 +127,7 @@ export function ProductDetailPage() {
   return (
     <>
       <Helmet>
-        <title>{product.name} — CommerceHub</title>
+        <title>{`${product.name} — CommerceHub`}</title>
       </Helmet>
 
       <Container maxWidth="lg" sx={{ py: 4 }}>
@@ -190,8 +190,8 @@ export function ProductDetailPage() {
             <PriceDisplay amount={product.price} variant="h4" fontWeight={800} color="primary.main" />
 
             <Box sx={{ my: 2 }}>
-              {product.status === 'ACTIVE' ? (
-                <Chip label="In Stock" color="success" size="small" />
+              {product.availableStock > 0 ? (
+                <Chip label={`${product.availableStock} in stock`} color="success" size="small" />
               ) : (
                 <Chip label="Out of Stock" color="error" size="small" />
               )}
@@ -203,7 +203,7 @@ export function ProductDetailPage() {
               </Typography>
             )}
 
-            {isAuthenticated && !isAdmin && product.status === 'ACTIVE' && (
+            {isAuthenticated && !isAdmin && product.status === 'ACTIVE' && product.availableStock > 0 && (
               <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 2 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <Button
@@ -219,7 +219,7 @@ export function ProductDetailPage() {
                   <Button
                     variant="outlined"
                     size="small"
-                    onClick={() => setQuantity((q) => Math.min(100, q + 1))}
+                    onClick={() => setQuantity((q) => Math.min(product.availableStock, q + 1))}
                     sx={{ minWidth: 32, px: 0 }}
                     aria-label="Increase quantity"
                   >
@@ -232,7 +232,7 @@ export function ProductDetailPage() {
                   size="large"
                   startIcon={addToCartMutation.isPending ? undefined : <AddShoppingCartIcon />}
                   onClick={() => addToCartMutation.mutate()}
-                  disabled={addToCartMutation.isPending}
+                  disabled={addToCartMutation.isPending || quantity > product.availableStock}
                   sx={{ flexGrow: 1 }}
                 >
                   {addToCartMutation.isPending ? <CircularProgress size={22} color="inherit" /> : 'Add to Cart'}

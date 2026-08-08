@@ -30,6 +30,7 @@ public class CorsConfig {
                 "Accept",
                 "X-Requested-With",
                 "Origin",
+                "Idempotency-Key",
                 "X-Idempotency-Key"
         ));
 

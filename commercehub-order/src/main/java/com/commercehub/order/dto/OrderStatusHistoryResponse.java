@@ -5,4 +5,10 @@ import com.commercehub.order.entity.OrderStatus;
 import java.time.Instant;
 import java.util.UUID;
 
-public record OrderStatusHistoryResponse(OrderStatus status, String note, UUID changedBy, Instant createdAt) {}
+public record OrderStatusHistoryResponse(
+        OrderStatus fromStatus,
+        OrderStatus toStatus,
+        String note,
+        UUID changedByUserId,
+        Instant changedAt
+) {}

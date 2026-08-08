@@ -9,6 +9,8 @@ import com.commercehub.cart.entity.CartItem;
 import com.commercehub.cart.entity.CartStatus;
 import com.commercehub.cart.repository.CartItemRepository;
 import com.commercehub.cart.repository.CartRepository;
+import com.commercehub.catalog.dto.ProductSummaryResponse;
+import com.commercehub.catalog.service.ProductService;
 import com.commercehub.common.exception.ResourceNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,13 +30,16 @@ public class CartServiceImpl implements CartService {
     private final CartRepository cartRepository;
     private final CartItemRepository cartItemRepository;
     private final ProductPriceLookup productPriceLookup;
+    private final ProductService productService;
 
     public CartServiceImpl(CartRepository cartRepository,
                            CartItemRepository cartItemRepository,
-                           ProductPriceLookup productPriceLookup) {
+                           ProductPriceLookup productPriceLookup,
+                           ProductService productService) {
         this.cartRepository = cartRepository;
         this.cartItemRepository = cartItemRepository;
         this.productPriceLookup = productPriceLookup;
+        this.productService = productService;
     }
 
     @Override
@@ -145,12 +150,15 @@ public class CartServiceImpl implements CartService {
 
     private CartResponse toResponse(Cart cart) {
         List<CartItemResponse> items = cart.getItems().stream()
-                .map(i -> new CartItemResponse(
-                        i.getId(), i.getProductId(), null,
-                        i.getQuantity(), i.getUnitPrice(), i.getLineTotal()))
+                .map(i -> {
+                    ProductSummaryResponse product = productService.getProductSummaryById(i.getProductId());
+                    return new CartItemResponse(
+                            i.getId(), i.getProductId(), product.name(), product.primaryImageUrl(),
+                            i.getQuantity(), i.getUnitPrice(), i.getLineTotal());
+                })
                 .toList();
         BigDecimal subtotal = cart.getSubtotal();
-        BigDecimal total = subtotal.subtract(cart.getDiscountAmount()).max(BigDecimal.ZERO);
-        return new CartResponse(cart.getId(), items, subtotal, cart.getCouponCode(), cart.getDiscountAmount(), total);
+        BigDecimal totalAfterDiscount = subtotal.subtract(cart.getDiscountAmount()).max(BigDecimal.ZERO);
+        return new CartResponse(cart.getId(), items, subtotal, cart.getCouponCode(), cart.getDiscountAmount(), totalAfterDiscount);
     }
 }

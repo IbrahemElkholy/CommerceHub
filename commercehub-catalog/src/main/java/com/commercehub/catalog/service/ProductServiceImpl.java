@@ -17,6 +17,7 @@ import com.commercehub.catalog.repository.ProductRepository;
 import com.commercehub.catalog.repository.ProductSpecification;
 import com.commercehub.common.exception.ConflictException;
 import com.commercehub.common.exception.ResourceNotFoundException;
+import com.commercehub.inventory.service.InventoryService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.cache.annotation.CacheEvict;
@@ -30,6 +31,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -42,27 +44,30 @@ public class ProductServiceImpl implements ProductService {
     private final CategoryRepository categoryRepository;
     private final BrandRepository brandRepository;
     private final ProductMapper productMapper;
+    private final InventoryService inventoryService;
 
     public ProductServiceImpl(ProductRepository productRepository,
                               CategoryRepository categoryRepository,
                               BrandRepository brandRepository,
-                              ProductMapper productMapper) {
+                              ProductMapper productMapper,
+                              InventoryService inventoryService) {
         this.productRepository = productRepository;
         this.categoryRepository = categoryRepository;
         this.brandRepository = brandRepository;
         this.productMapper = productMapper;
+        this.inventoryService = inventoryService;
     }
 
     @Override
     @Transactional(readOnly = true)
-    @Cacheable(value = "products", key = "#id")
     public ProductResponse getProductById(UUID id, boolean isAdmin) {
         Product product = productRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found: " + id, "PRODUCT_NOT_FOUND"));
         if (!isAdmin && product.getStatus() == ProductStatus.INACTIVE) {
             throw new ResourceNotFoundException("Product not found: " + id, "PRODUCT_NOT_FOUND");
         }
-        return productMapper.toResponse(product);
+        Integer availableStock = inventoryService.getAvailableStock(id);
+        return productMapper.toResponse(product, availableStock);
     }
 
     @Override
@@ -70,7 +75,8 @@ public class ProductServiceImpl implements ProductService {
     public ProductSummaryResponse getProductSummaryById(UUID id) {
         Product product = productRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found: " + id, "PRODUCT_NOT_FOUND"));
-        return productMapper.toSummaryResponse(product);
+        Integer availableStock = inventoryService.getAvailableStock(id);
+        return productMapper.toSummaryResponse(product, availableStock);
     }
 
     @Override
@@ -87,7 +93,11 @@ public class ProductServiceImpl implements ProductService {
         if (filter.minPrice() != null) spec = spec.and(ProductSpecification.hasMinPrice(filter.minPrice()));
         if (filter.maxPrice() != null) spec = spec.and(ProductSpecification.hasMaxPrice(filter.maxPrice()));
         if (filter.search() != null && !filter.search().isBlank()) spec = spec.and(ProductSpecification.matchesSearch(filter.search()));
-        return productRepository.findAll(spec, pageable).map(productMapper::toSummaryResponse);
+        Page<Product> products = productRepository.findAll(spec, pageable);
+        Map<UUID, Integer> stockMap = inventoryService.getAvailableStock(
+                products.getContent().stream().map(Product::getId).toList());
+        return products.map(p -> productMapper.toSummaryResponse(p,
+                stockMap.getOrDefault(p.getId(), 0)));
     }
 
     @Override
@@ -107,7 +117,7 @@ public class ProductServiceImpl implements ProductService {
         applyImages(product, request.images());
         product = productRepository.save(product);
         log.info("Product created: id={}, sku={}", product.getId(), product.getSku());
-        return productMapper.toResponse(product);
+        return productMapper.toResponse(product, inventoryService.getAvailableStock(product.getId()));
     }
 
     @Override
@@ -127,16 +137,17 @@ public class ProductServiceImpl implements ProductService {
         if (request.categoryIds() != null) applyCategories(product, request.categoryIds());
         if (request.brandId() != null) applyBrand(product, request.brandId());
         if (request.images() != null) applyImages(product, request.images());
-        return productMapper.toResponse(productRepository.save(product));
+        Product saved = productRepository.save(product);
+        return productMapper.toResponse(saved, inventoryService.getAvailableStock(saved.getId()));
     }
 
     @Override
     @Transactional
-    @CacheEvict(value = "products", key = "#id")
     public ProductResponse updateProductStatus(UUID id, ProductStatus status) {
         Product product = findActiveOrThrow(id);
         product.setStatus(status);
-        return productMapper.toResponse(productRepository.save(product));
+        Product saved = productRepository.save(product);
+        return productMapper.toResponse(saved, inventoryService.getAvailableStock(saved.getId()));
     }
 
     @Override

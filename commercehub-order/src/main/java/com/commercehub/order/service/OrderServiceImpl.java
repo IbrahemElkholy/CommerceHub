@@ -3,8 +3,12 @@ package com.commercehub.order.service;
 import com.commercehub.cart.entity.Cart;
 import com.commercehub.cart.entity.CartStatus;
 import com.commercehub.cart.repository.CartRepository;
+import com.commercehub.catalog.dto.ProductSummaryResponse;
+import com.commercehub.catalog.service.ProductService;
 import com.commercehub.common.exception.InvalidOrderStateException;
 import com.commercehub.common.exception.ResourceNotFoundException;
+import com.commercehub.identity.dto.AddressResponse;
+import com.commercehub.identity.service.UserService;
 import com.commercehub.inventory.dto.StockReservationRequest;
 import com.commercehub.inventory.service.InventoryService;
 import com.commercehub.order.dto.OrderItemResponse;
@@ -12,7 +16,6 @@ import com.commercehub.order.dto.OrderResponse;
 import com.commercehub.order.dto.OrderStatusHistoryResponse;
 import com.commercehub.order.dto.OrderSummaryResponse;
 import com.commercehub.order.dto.PlaceOrderRequest;
-import com.commercehub.order.dto.ShippingAddressDto;
 import com.commercehub.order.entity.Order;
 import com.commercehub.order.entity.OrderItem;
 import com.commercehub.order.entity.OrderStatus;
@@ -40,25 +43,31 @@ public class OrderServiceImpl implements OrderService {
     private final OrderRepository orderRepository;
     private final CartRepository cartRepository;
     private final InventoryService inventoryService;
+    private final UserService userService;
+    private final ProductService productService;
     private final ApplicationEventPublisher eventPublisher;
 
     public OrderServiceImpl(OrderRepository orderRepository,
                             CartRepository cartRepository,
                             InventoryService inventoryService,
+                            UserService userService,
+                            ProductService productService,
                             ApplicationEventPublisher eventPublisher) {
         this.orderRepository = orderRepository;
         this.cartRepository = cartRepository;
         this.inventoryService = inventoryService;
+        this.userService = userService;
+        this.productService = productService;
         this.eventPublisher = eventPublisher;
     }
 
     @Override
     @Transactional
-    public OrderResponse placeOrder(UUID userId, PlaceOrderRequest request) {
-        orderRepository.findByIdempotencyKey(request.idempotencyKey())
+    public OrderResponse placeOrder(UUID userId, PlaceOrderRequest request, String idempotencyKey) {
+        orderRepository.findByIdempotencyKey(idempotencyKey)
                 .ifPresent(existing -> {
                     throw new InvalidOrderStateException(
-                            "Order already placed with key: " + request.idempotencyKey());
+                            "Order already placed with key: " + idempotencyKey);
                 });
 
         Cart cart = cartRepository.findByUserIdAndStatus(userId, CartStatus.ACTIVE)
@@ -68,6 +77,11 @@ public class OrderServiceImpl implements OrderService {
             throw new InvalidOrderStateException("Cannot place order with empty cart");
         }
 
+        AddressResponse address = userService.getAddresses(userId).stream()
+                .filter(a -> a.id().equals(request.shippingAddressId()))
+                .findFirst()
+                .orElseThrow(() -> new ResourceNotFoundException("Shipping address not found"));
+
         List<StockReservationRequest> reservations = cart.getItems().stream()
                 .map(i -> new StockReservationRequest(i.getProductId(), i.getQuantity()))
                 .toList();
@@ -75,16 +89,22 @@ public class OrderServiceImpl implements OrderService {
 
         Order order = new Order();
         order.setUserId(userId);
-        order.setIdempotencyKey(request.idempotencyKey());
+        order.setIdempotencyKey(idempotencyKey);
         order.setNotes(request.notes());
-        order.setShippingAddress(mapAddress(request.shippingAddress()));
+        order.setShippingAddress(mapAddress(address));
 
         for (var cartItem : cart.getItems()) {
             OrderItem oi = new OrderItem();
             oi.setOrder(order);
             oi.setProductId(cartItem.getProductId());
-            oi.setProductName("");
-            oi.setProductSku("");
+            try {
+                ProductSummaryResponse product = productService.getProductSummaryById(cartItem.getProductId());
+                oi.setProductName(product.name());
+                oi.setProductSku(product.sku());
+            } catch (ResourceNotFoundException e) {
+                oi.setProductName("");
+                oi.setProductSku("");
+            }
             oi.setQuantity(cartItem.getQuantity());
             oi.setUnitPrice(cartItem.getUnitPrice());
             oi.setLineTotal(cartItem.getLineTotal());
@@ -147,7 +167,7 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     @Transactional
-    public void cancelOrder(UUID orderId, UUID requestingUserId) {
+    public void cancelOrder(UUID orderId, UUID requestingUserId, String reason) {
         Order order = findOrThrow(orderId);
         if (!order.getUserId().equals(requestingUserId)) {
             throw new ResourceNotFoundException("Order not found");
@@ -156,7 +176,8 @@ public class OrderServiceImpl implements OrderService {
             throw new InvalidOrderStateException("Order cannot be cancelled in status: " + order.getStatus());
         }
         inventoryService.releaseReservation(orderId);
-        order.addStatusHistory(OrderStatus.CANCELLED, requestingUserId, "Cancelled by customer");
+        String note = (reason != null && !reason.isBlank()) ? reason : "Cancelled by customer";
+        order.addStatusHistory(OrderStatus.CANCELLED, requestingUserId, note);
         orderRepository.save(order);
         log.info("Order cancelled: id={}", orderId);
     }
@@ -166,7 +187,7 @@ public class OrderServiceImpl implements OrderService {
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found: " + orderId));
     }
 
-    private ShippingAddress mapAddress(ShippingAddressDto dto) {
+    private ShippingAddress mapAddress(AddressResponse dto) {
         ShippingAddress addr = new ShippingAddress();
         addr.setStreetLine1(dto.streetLine1());
         addr.setStreetLine2(dto.streetLine2());
@@ -177,26 +198,41 @@ public class OrderServiceImpl implements OrderService {
         return addr;
     }
 
+    private String orderNumberFrom(UUID id) {
+        return "ORD-" + id.toString().substring(0, 8).toUpperCase();
+    }
+
     private OrderResponse toResponse(Order order) {
         List<OrderItemResponse> items = order.getItems().stream().map(i ->
                 new OrderItemResponse(i.getId(), i.getProductId(), i.getProductName(), i.getProductSku(),
                         i.getQuantity(), i.getUnitPrice(), i.getLineTotal())).toList();
         List<OrderStatusHistoryResponse> history = order.getStatusHistory().stream().map(h ->
-                new OrderStatusHistoryResponse(h.getStatus(), h.getNote(), h.getChangedBy(), h.getCreatedAt())).toList();
-        ShippingAddressDto addr = null;
-        if (order.getShippingAddress() != null) {
-            var sa = order.getShippingAddress();
-            addr = new ShippingAddressDto(sa.getStreetLine1(), sa.getStreetLine2(),
-                    sa.getCity(), sa.getState(), sa.getPostalCode(), sa.getCountryCode());
-        }
-        return new OrderResponse(order.getId(), order.getStatus(), items, order.getSubtotal(),
-                order.getDiscountAmount(), order.getShippingAmount(), order.getTotal(),
-                order.getCurrency(), addr, order.getNotes(),
-                order.getCreatedAt(), order.getUpdatedAt(), history);
+                new OrderStatusHistoryResponse(null, h.getStatus(), h.getNote(), h.getChangedBy(), h.getCreatedAt())).toList();
+        ShippingAddress sa = order.getShippingAddress();
+        return new OrderResponse(
+                order.getId(),
+                orderNumberFrom(order.getId()),
+                order.getUserId(),
+                order.getStatus(),
+                items,
+                sa != null ? sa.getStreetLine1() : null,
+                sa != null ? sa.getCity() : null,
+                sa != null ? sa.getState() : null,
+                sa != null ? sa.getPostalCode() : null,
+                sa != null ? sa.getCountryCode() : null,
+                order.getSubtotal(),
+                order.getDiscountAmount(),
+                order.getShippingAmount(),
+                java.math.BigDecimal.ZERO,
+                order.getTotal(),
+                null,
+                history,
+                order.getCreatedAt(),
+                order.getUpdatedAt());
     }
 
     private OrderSummaryResponse toSummary(Order order) {
-        return new OrderSummaryResponse(order.getId(), order.getStatus(), order.getTotal(),
-                order.getCurrency(), order.getItems().size(), order.getCreatedAt());
+        return new OrderSummaryResponse(order.getId(), orderNumberFrom(order.getId()), order.getStatus(),
+                order.getTotal(), order.getItems().size(), order.getCreatedAt());
     }
 }

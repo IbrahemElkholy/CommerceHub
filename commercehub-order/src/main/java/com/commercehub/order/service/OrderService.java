@@ -11,7 +11,7 @@ import java.util.UUID;
 
 public interface OrderService {
 
-    OrderResponse placeOrder(UUID userId, PlaceOrderRequest request);
+    OrderResponse placeOrder(UUID userId, PlaceOrderRequest request, String idempotencyKey);
 
     OrderResponse getOrderById(UUID orderId, UUID requestingUserId, boolean isAdmin);
 
@@ -21,5 +21,5 @@ public interface OrderService {
 
     OrderResponse updateOrderStatus(UUID orderId, OrderStatus newStatus, UUID changedBy, String note);
 
-    void cancelOrder(UUID orderId, UUID requestingUserId);
+    void cancelOrder(UUID orderId, UUID requestingUserId, String reason);
 }

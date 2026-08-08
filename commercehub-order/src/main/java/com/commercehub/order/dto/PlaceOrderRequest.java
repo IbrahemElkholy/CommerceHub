@@ -1,11 +1,11 @@
 package com.commercehub.order.dto;
 
-import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
+import java.util.UUID;
+
 public record PlaceOrderRequest(
-        @NotBlank String idempotencyKey,
-        @NotNull @Valid ShippingAddressDto shippingAddress,
+        @NotNull UUID shippingAddressId,
+        String couponCode,
         String notes
 ) {}

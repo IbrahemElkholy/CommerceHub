@@ -10,5 +10,5 @@ public record CartResponse(
         BigDecimal subtotal,
         String couponCode,
         BigDecimal discountAmount,
-        BigDecimal total
+        BigDecimal totalAfterDiscount
 ) {}

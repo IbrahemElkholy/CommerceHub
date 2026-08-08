@@ -2,7 +2,6 @@ package com.commercehub.order.entity;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
-import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -11,6 +10,8 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -52,8 +53,8 @@ public class Order {
     @Column(nullable = false, length = 3)
     private String currency = "USD";
 
-    @Convert(converter = ShippingAddressConverter.class)
-    @Column(name = "shipping_address", columnDefinition = "jsonb")
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "shipping_address")
     private ShippingAddress shippingAddress;
 
     @Column(columnDefinition = "TEXT")

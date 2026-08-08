@@ -65,7 +65,22 @@ export function ProfilePage() {
 
   const addressForm = useForm<AddressFormValues>({
     resolver: zodResolver(addressSchema),
+    defaultValues: {
+      label: '',
+      streetLine1: '',
+      streetLine2: '',
+      city: '',
+      state: '',
+      postalCode: '',
+      countryCode: '',
+      isDefault: false,
+    },
   });
+
+  const bindAddressField = (name: keyof AddressFormValues) => {
+    const { ref, ...rest } = addressForm.register(name);
+    return { inputRef: ref, ...rest };
+  };
 
   const changePasswordMutation = useMutation({
     mutationFn: (data: ChangePasswordValues) =>
@@ -131,7 +146,16 @@ export function ProfilePage() {
   const openEditAddress = (id: string) => {
     const addr = addresses?.find((a) => a.id === id);
     if (addr) {
-      addressForm.reset(addr);
+      addressForm.reset({
+        label: addr.label ?? '',
+        streetLine1: addr.streetLine1 ?? '',
+        streetLine2: addr.streetLine2 ?? '',
+        city: addr.city ?? '',
+        state: addr.state ?? '',
+        postalCode: addr.postalCode ?? '',
+        countryCode: addr.countryCode ?? '',
+        isDefault: addr.isDefault ?? false,
+      });
       setEditingAddressId(id);
       setAddressDialogOpen(true);
     }
@@ -261,7 +285,16 @@ export function ProfilePage() {
                     variant="outlined"
                     size="small"
                     onClick={() => {
-                      addressForm.reset({ streetLine1: '', city: '', state: '', postalCode: '', countryCode: '' });
+                      addressForm.reset({
+                        label: '',
+                        streetLine1: '',
+                        streetLine2: '',
+                        city: '',
+                        state: '',
+                        postalCode: '',
+                        countryCode: '',
+                        isDefault: false,
+                      });
                       setEditingAddressId(null);
                       setAddressDialogOpen(true);
                     }}
@@ -277,8 +310,16 @@ export function ProfilePage() {
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                         <Box>
                           <Typography variant="body2">
-                            {addr.label && <><strong>{addr.label}</strong> — </>}
-                            {addr.streetLine1}{addr.streetLine2 ? `, ${addr.streetLine2}` : ''}, {addr.city}, {addr.state} {addr.postalCode}, {addr.countryCode}
+                            {addr.label ? <><strong>{addr.label}</strong> — </> : null}
+                            {[
+                              addr.streetLine1,
+                              addr.streetLine2,
+                              addr.city,
+                              [addr.state, addr.postalCode].filter((x): x is string => !!x).join(' '),
+                              addr.countryCode,
+                            ]
+                              .filter((x): x is string => !!x)
+                              .join(', ')}
                           </Typography>
                           {addr.isDefault && <Chip label="Default" size="small" color="primary" sx={{ mt: 0.5 }} />}
                         </Box>
@@ -315,25 +356,25 @@ export function ProfilePage() {
           >
             <Grid container spacing={2} sx={{ mt: 0.5 }}>
               <Grid size={{ xs: 12 }}>
-                <TextField label="Label (optional, e.g. Home)" fullWidth {...addressForm.register('label')} />
+                <TextField label="Label (optional, e.g. Home)" fullWidth {...bindAddressField('label')} />
               </Grid>
               <Grid size={{ xs: 12 }}>
-                <TextField label="Street Address" fullWidth {...addressForm.register('streetLine1')} error={!!addressForm.formState.errors.streetLine1} helperText={addressForm.formState.errors.streetLine1?.message} />
+                <TextField label="Street Address" fullWidth {...bindAddressField('streetLine1')} error={!!addressForm.formState.errors.streetLine1} helperText={addressForm.formState.errors.streetLine1?.message} />
               </Grid>
               <Grid size={{ xs: 12 }}>
-                <TextField label="Apartment, suite, etc. (optional)" fullWidth {...addressForm.register('streetLine2')} />
+                <TextField label="Apartment, suite, etc. (optional)" fullWidth {...bindAddressField('streetLine2')} />
               </Grid>
               <Grid size={{ xs: 12, sm: 6 }}>
-                <TextField label="City" fullWidth {...addressForm.register('city')} error={!!addressForm.formState.errors.city} helperText={addressForm.formState.errors.city?.message} />
+                <TextField label="City" fullWidth {...bindAddressField('city')} error={!!addressForm.formState.errors.city} helperText={addressForm.formState.errors.city?.message} />
               </Grid>
               <Grid size={{ xs: 12, sm: 6 }}>
-                <TextField label="State / Province" fullWidth {...addressForm.register('state')} error={!!addressForm.formState.errors.state} helperText={addressForm.formState.errors.state?.message} />
+                <TextField label="State / Province" fullWidth {...bindAddressField('state')} error={!!addressForm.formState.errors.state} helperText={addressForm.formState.errors.state?.message} />
               </Grid>
               <Grid size={{ xs: 12, sm: 6 }}>
-                <TextField label="Postal Code" fullWidth {...addressForm.register('postalCode')} error={!!addressForm.formState.errors.postalCode} helperText={addressForm.formState.errors.postalCode?.message} />
+                <TextField label="Postal Code" fullWidth {...bindAddressField('postalCode')} error={!!addressForm.formState.errors.postalCode} helperText={addressForm.formState.errors.postalCode?.message} />
               </Grid>
               <Grid size={{ xs: 12, sm: 6 }}>
-                <TextField label="Country Code (e.g. EG, US)" fullWidth {...addressForm.register('countryCode')} error={!!addressForm.formState.errors.countryCode} helperText={addressForm.formState.errors.countryCode?.message} />
+                <TextField label="Country Code (e.g. EG, US)" fullWidth {...bindAddressField('countryCode')} error={!!addressForm.formState.errors.countryCode} helperText={addressForm.formState.errors.countryCode?.message} />
               </Grid>
             </Grid>
           </Box>

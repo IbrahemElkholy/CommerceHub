@@ -7,7 +7,7 @@ public record OrderItemResponse(
         UUID id,
         UUID productId,
         String productName,
-        String productSku,
+        String sku,
         int quantity,
         BigDecimal unitPrice,
         BigDecimal lineTotal

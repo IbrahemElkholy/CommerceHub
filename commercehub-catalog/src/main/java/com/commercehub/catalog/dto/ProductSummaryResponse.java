@@ -12,5 +12,6 @@ public record ProductSummaryResponse(
         BigDecimal price,
         ProductStatus status,
         String primaryImageUrl,
-        String brandName
+        String brandName,
+        Integer availableStock
 ) {}

@@ -26,6 +26,7 @@ const AdminProductsPage = lazy(() => import('@/features/admin/pages/AdminProduct
 const AdminOrdersPage = lazy(() => import('@/features/admin/pages/AdminOrdersPage').then((m) => ({ default: m.AdminOrdersPage })));
 const AdminUsersPage = lazy(() => import('@/features/admin/pages/AdminUsersPage').then((m) => ({ default: m.AdminUsersPage })));
 const AdminInventoryPage = lazy(() => import('@/features/admin/pages/AdminInventoryPage').then((m) => ({ default: m.AdminInventoryPage })));
+const AdminProductFormPage = lazy(() => import('@/features/admin/pages/AdminProductFormPage').then((m) => ({ default: m.AdminProductFormPage })));
 const AdminDashboardFallback = lazy(() => import('@/features/admin/pages/AdminDashboardPage').then((m) => ({ default: m.AdminDashboardPage })));
 
 const wrap = (el: React.ReactElement) => <Suspense fallback={<PageLoader />}>{el}</Suspense>;
@@ -71,6 +72,8 @@ export const router = createBrowserRouter([
           { path: ROUTES.ADMIN, element: <Navigate to={ROUTES.ADMIN_DASHBOARD} replace /> },
           { path: ROUTES.ADMIN_DASHBOARD, element: wrap(<AdminDashboardPage />) },
           { path: ROUTES.ADMIN_PRODUCTS, element: wrap(<AdminProductsPage />) },
+          { path: ROUTES.ADMIN_PRODUCTS_NEW, element: wrap(<AdminProductFormPage />) },
+          { path: ROUTES.ADMIN_PRODUCTS_EDIT, element: wrap(<AdminProductFormPage />) },
           { path: ROUTES.ADMIN_ORDERS, element: wrap(<AdminOrdersPage />) },
           { path: ROUTES.ADMIN_ORDER_DETAIL, element: wrap(<OrderDetailPage />) },
           { path: ROUTES.ADMIN_USERS, element: wrap(<AdminUsersPage />) },

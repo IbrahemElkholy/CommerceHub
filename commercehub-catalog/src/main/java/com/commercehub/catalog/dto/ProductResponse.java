@@ -18,6 +18,7 @@ public record ProductResponse(
         BrandResponse brand,
         Set<CategorySummaryResponse> categories,
         List<ProductImageResponse> images,
+        Integer availableStock,
         Instant createdAt,
         Instant updatedAt
 ) {}

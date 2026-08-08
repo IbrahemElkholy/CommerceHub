@@ -2,10 +2,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { apiClient } from '@/api/client';
 import type { ApiResponse, PaginatedResponse } from '@/types/api';
 import type {
-  CancelOrderRequest,
   OrderFilterParams,
   OrderResponse,
-  OrderStatusHistoryResponse,
   OrderSummaryResponse,
   PlaceOrderRequest,
   UpdateOrderStatusRequest,
@@ -23,22 +21,26 @@ export const orderService = {
   getMyOrders: async (
     params: OrderFilterParams,
   ): Promise<PaginatedResponse<OrderSummaryResponse>> => {
-    const response = await apiClient.get<PaginatedResponse<OrderSummaryResponse>>('/orders', {
-      params,
-    });
+    const response = await apiClient.get<PaginatedResponse<OrderSummaryResponse>>(
+      '/orders/me',
+      { params },
+    );
     return response.data;
   },
 
   getOrderById: async (id: string): Promise<OrderResponse> => {
-    const response = await apiClient.get<ApiResponse<OrderResponse>>(`/orders/${id}`);
+    const response = await apiClient.get<ApiResponse<OrderResponse>>(`/orders/me/${id}`);
     return response.data.data;
   },
 
-  cancelOrder: async (id: string, data: CancelOrderRequest): Promise<OrderResponse> => {
-    const response = await apiClient.post<ApiResponse<OrderResponse>>(
-      `/orders/${id}/cancel`,
-      data,
-    );
+  cancelOrder: async (id: string, reason?: string): Promise<void> => {
+    await apiClient.delete<void>(`/orders/me/${id}`, {
+      params: reason ? { reason } : undefined,
+    });
+  },
+
+  getAdminOrderById: async (id: string): Promise<OrderResponse> => {
+    const response = await apiClient.get<ApiResponse<OrderResponse>>(`/orders/${id}`);
     return response.data.data;
   },
 
@@ -46,7 +48,7 @@ export const orderService = {
     params: OrderFilterParams,
   ): Promise<PaginatedResponse<OrderSummaryResponse>> => {
     const response = await apiClient.get<PaginatedResponse<OrderSummaryResponse>>(
-      '/orders/admin',
+      '/orders',
       { params },
     );
     return response.data;
@@ -63,10 +65,4 @@ export const orderService = {
     return response.data.data;
   },
 
-  getOrderHistory: async (id: string): Promise<OrderStatusHistoryResponse[]> => {
-    const response = await apiClient.get<ApiResponse<OrderStatusHistoryResponse[]>>(
-      `/orders/${id}/history`,
-    );
-    return response.data.data;
-  },
 };

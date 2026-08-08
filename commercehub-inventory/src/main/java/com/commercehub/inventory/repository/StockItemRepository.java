@@ -15,6 +15,8 @@ public interface StockItemRepository extends JpaRepository<StockItem, UUID>, Jpa
 
     List<StockItem> findAllByProductId(UUID productId);
 
+    List<StockItem> findAllByProductIdIn(List<UUID> productIds);
+
     @Query("SELECT s FROM StockItem s WHERE s.quantityOnHand <= s.lowStockThreshold")
     List<StockItem> findLowStockItems();
 }

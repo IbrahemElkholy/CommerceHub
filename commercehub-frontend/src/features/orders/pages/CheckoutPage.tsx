@@ -51,6 +51,14 @@ export function CheckoutPage() {
 
   const apiError = error as ApiErrorResponse | null;
 
+  const isStockError = apiError?.error?.code === 'INSUFFICIENT_STOCK';
+  const stockProductId = isStockError
+    ? apiError.error.message.match(/product:\s*([a-f0-9-]+)/i)?.[1] ?? null
+    : null;
+  const stockProduct = stockProductId
+    ? cart?.items.find((item) => item.productId === stockProductId)
+    : null;
+
   return (
     <>
       <Helmet><title>Checkout — CommerceHub</title></Helmet>
@@ -59,8 +67,24 @@ export function CheckoutPage() {
         <Typography variant="h4" sx={{ fontWeight: 700, mb: 4 }}>Checkout</Typography>
 
         {apiError?.error && (
-          <Alert severity="error" sx={{ mb: 3 }}>
-            {apiError.error.message}
+          <Alert
+            severity="error"
+            sx={{ mb: 3 }}
+            action={
+              isStockError ? (
+                <Button
+                  color="inherit"
+                  size="small"
+                  onClick={() => navigate(ROUTES.CART)}
+                >
+                  Update Cart
+                </Button>
+              ) : undefined
+            }
+          >
+            {isStockError
+              ? `Not enough stock for ${stockProduct?.productName ?? 'this product'}. Please adjust the quantity in your cart.`
+              : apiError.error.message}
           </Alert>
         )}
 
@@ -102,8 +126,21 @@ export function CheckoutPage() {
                           control={<Radio />}
                           label={
                             <Box>
-                              <Typography variant="body2">
-                                {addr.street}, {addr.city}, {addr.state} {addr.postalCode}, {addr.countryCode}
+                              {addr.label && (
+                                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                  {addr.label}
+                                </Typography>
+                              )}
+                              <Typography variant="body2" color="text.secondary">
+                                {[
+                                  addr.streetLine1,
+                                  addr.streetLine2,
+                                  addr.city,
+                                  `${addr.state} ${addr.postalCode}`.trim(),
+                                  addr.countryCode,
+                                ]
+                                  .filter((part): part is string => part !== null && part.trim().length > 0)
+                                  .join(', ')}
                               </Typography>
                               {addr.isDefault && (
                                 <Typography variant="caption" sx={{ color: 'primary.main' }}>

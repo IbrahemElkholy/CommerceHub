@@ -8,9 +8,9 @@ import java.util.UUID;
 
 public record OrderSummaryResponse(
         UUID id,
+        String orderNumber,
         OrderStatus status,
-        BigDecimal total,
-        String currency,
+        BigDecimal totalAmount,
         int itemCount,
         Instant createdAt
 ) {}

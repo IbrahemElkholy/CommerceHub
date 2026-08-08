@@ -84,8 +84,11 @@ export function ProductCard(props: Props) {
             {product.name}
           </Typography>
           <PriceDisplay amount={product.price} variant="h6" fontWeight={700} color="primary.main" />
-          {product.status === 'INACTIVE' && (
+          {product.availableStock <= 0 && (
             <Chip label="Out of stock" color="error" size="small" sx={{ mt: 0.5 }} />
+          )}
+          {product.availableStock > 0 && product.availableStock <= 5 && (
+            <Chip label={`Only ${product.availableStock} left`} color="warning" size="small" sx={{ mt: 0.5 }} />
           )}
         </CardContent>
 
@@ -103,7 +106,7 @@ export function ProductCard(props: Props) {
                 </IconButton>
               </Tooltip>
 
-              {product.status === 'ACTIVE' && (
+              {product.status === 'ACTIVE' && product.availableStock > 0 && (
                 <Tooltip title="Add to cart">
                   <IconButton
                     size="small"

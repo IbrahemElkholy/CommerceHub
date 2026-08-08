@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import type { OrderStatus } from '../types';
 import {
   Container,
   Typography,
@@ -18,6 +19,7 @@ import {
   DialogContent,
   DialogActions,
   TextField,
+  MenuItem,
   CircularProgress,
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
@@ -25,7 +27,7 @@ import { Helmet } from 'react-helmet-async';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useOrder } from '../hooks/useOrders';
+import { useOrder, useAdminOrder } from '../hooks/useOrders';
 import { orderService } from '../services/orderService';
 import { StatusChip } from '@/components/common/StatusChip';
 import { PriceDisplay } from '@/components/common/PriceDisplay';
@@ -38,15 +40,22 @@ import { cancelOrderSchema, type CancelOrderFormValues } from '@/validators/orde
 import { useUiStore } from '@/store/uiStore';
 
 const ORDER_STEPS = ['CREATED', 'PAID', 'PROCESSING', 'PACKED', 'SHIPPED', 'DELIVERED'];
+const ALL_STATUSES: OrderStatus[] = ['CREATED', 'PENDING_PAYMENT', 'PAID', 'PROCESSING', 'PACKED', 'SHIPPED', 'DELIVERED', 'CANCELLED', 'REFUNDED'];
 
 export function OrderDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
   const showSnackbar = useUiStore((s) => s.showSnackbar);
   const [cancelOpen, setCancelOpen] = useState(false);
+  const [newStatus, setNewStatus] = useState<OrderStatus | ''>('');
+  const [statusNote, setStatusNote] = useState('');
 
-  const { data: order, isLoading, isError, refetch } = useOrder(id ?? '');
+  const isAdminRoute = location.pathname.startsWith('/admin');
+  const customerQuery = useOrder(isAdminRoute ? '' : (id ?? ''));
+  const adminQuery = useAdminOrder(isAdminRoute ? (id ?? '') : '');
+  const { data: order, isLoading, isError, refetch } = isAdminRoute ? adminQuery : customerQuery;
 
   const {
     register,
@@ -55,8 +64,19 @@ export function OrderDetailPage() {
     reset,
   } = useForm<CancelOrderFormValues>({ resolver: zodResolver(cancelOrderSchema) });
 
+  const updateStatusMutation = useMutation({
+    mutationFn: () => orderService.updateOrderStatus(id!, { status: newStatus as OrderStatus, note: statusNote || undefined }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.ORDERS.DETAIL(id!) });
+      showSnackbar('Order status updated.', 'success');
+      setNewStatus('');
+      setStatusNote('');
+    },
+    onError: () => showSnackbar('Could not update order status.', 'error'),
+  });
+
   const cancelMutation = useMutation({
-    mutationFn: (data: CancelOrderFormValues) => orderService.cancelOrder(id!, data),
+    mutationFn: (data: CancelOrderFormValues) => orderService.cancelOrder(id!, data.reason),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.ORDERS.DETAIL(id!) });
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.ORDERS.MY() });
@@ -88,7 +108,7 @@ export function OrderDetailPage() {
 
   return (
     <>
-      <Helmet><title>Order {order.orderNumber} — CommerceHub</title></Helmet>
+      <Helmet><title>{`Order ${order.orderNumber} — CommerceHub`}</title></Helmet>
 
       <Container maxWidth="lg" sx={{ py: 4 }}>
         <Button startIcon={<ArrowBackIcon />} onClick={() => navigate(ROUTES.ORDERS)} sx={{ mb: 3 }}>
@@ -104,7 +124,7 @@ export function OrderDetailPage() {
           </Box>
           <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
             <StatusChip status={order.status} size="medium" />
-            {isCancellable(order.status) && (
+            {!isAdminRoute && isCancellable(order.status) && (
               <Button variant="outlined" color="error" onClick={() => setCancelOpen(true)}>
                 Cancel Order
               </Button>
@@ -126,7 +146,45 @@ export function OrderDetailPage() {
           </Card>
         )}
 
-        <Grid container spacing={3}>
+        {isAdminRoute && (
+        <Card variant="outlined" sx={{ mb: 3 }}>
+          <CardContent>
+            <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>Update Status</Typography>
+            <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+              <TextField
+                select
+                label="New Status"
+                value={newStatus}
+                onChange={(e) => setNewStatus(e.target.value as OrderStatus)}
+                size="small"
+                sx={{ minWidth: 180 }}
+              >
+                {ALL_STATUSES.map((s) => (
+                  <MenuItem key={s} value={s} disabled={s === order.status}>
+                    {s.replace('_', ' ')}
+                  </MenuItem>
+                ))}
+              </TextField>
+              <TextField
+                label="Note (optional)"
+                value={statusNote}
+                onChange={(e) => setStatusNote(e.target.value)}
+                size="small"
+                sx={{ flex: 1, minWidth: 200 }}
+              />
+              <Button
+                variant="contained"
+                disabled={!newStatus || newStatus === order.status || updateStatusMutation.isPending}
+                onClick={() => updateStatusMutation.mutate()}
+              >
+                {updateStatusMutation.isPending ? <CircularProgress size={20} color="inherit" /> : 'Update'}
+              </Button>
+            </Box>
+          </CardContent>
+        </Card>
+      )}
+
+      <Grid container spacing={3}>
           <Grid size={{ xs: 12, md: 7 }}>
             <Card variant="outlined" sx={{ mb: 3 }}>
               <CardContent>
@@ -152,9 +210,14 @@ export function OrderDetailPage() {
               <CardContent>
                 <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>Shipping Address</Typography>
                 <Typography variant="body2">
-                  {order.shippingStreet}<br />
-                  {order.shippingCity}, {order.shippingState} {order.shippingPostalCode}<br />
-                  {order.shippingCountryCode}
+                  {[
+                    order.shippingStreet,
+                    order.shippingCity,
+                    [order.shippingState, order.shippingPostalCode].filter(Boolean).join(' '),
+                    order.shippingCountryCode,
+                  ]
+                    .filter(Boolean)
+                    .join(', ') || '—'}
                 </Typography>
               </CardContent>
             </Card>

@@ -48,6 +48,7 @@ export interface ProductResponse {
   categories: CategorySummaryResponse[];
   images: ProductImageResponse[];
   dimensions: DimensionsResponse | null;
+  availableStock: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -60,6 +61,7 @@ export interface ProductSummaryResponse {
   status: ProductStatus;
   primaryImageUrl: string | null;
   brandName: string | null;
+  availableStock: number;
 }
 
 export interface ProductFilterParams {

@@ -19,6 +19,14 @@ export function useOrder(id: string) {
   });
 }
 
+export function useAdminOrder(id: string) {
+  return useQuery({
+    queryKey: QUERY_KEYS.ORDERS.DETAIL(id),
+    queryFn: () => orderService.getAdminOrderById(id),
+    enabled: !!id,
+  });
+}
+
 export function useAdminOrders(params: OrderFilterParams) {
   return useQuery({
     queryKey: QUERY_KEYS.ORDERS.ADMIN_LIST(params as Record<string, unknown>),

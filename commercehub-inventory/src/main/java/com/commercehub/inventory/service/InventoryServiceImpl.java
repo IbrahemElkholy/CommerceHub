@@ -22,7 +22,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class InventoryServiceImpl implements InventoryService {
@@ -137,6 +139,14 @@ public class InventoryServiceImpl implements InventoryService {
         return stockItemRepository.findAllByProductId(productId).stream()
                 .mapToInt(StockItem::getQuantityAvailable)
                 .sum();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<UUID, Integer> getAvailableStock(List<UUID> productIds) {
+        return stockItemRepository.findAllByProductIdIn(productIds).stream()
+                .collect(Collectors.groupingBy(StockItem::getProductId,
+                        Collectors.summingInt(StockItem::getQuantityAvailable)));
     }
 
     @Transactional
