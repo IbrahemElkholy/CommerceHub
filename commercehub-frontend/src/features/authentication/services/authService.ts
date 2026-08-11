@@ -30,10 +30,10 @@ export const authService = {
   },
 
   requestPasswordReset: async (data: PasswordResetRequestDto): Promise<void> => {
-    await apiClient.post('/auth/password/reset-request', data);
+    await apiClient.post('/auth/password-reset/request', data);
   },
 
   resetPassword: async (data: PasswordResetDto): Promise<void> => {
-    await apiClient.post('/auth/password/reset', data);
+    await apiClient.post('/auth/password-reset/confirm', data);
   },
 };

@@ -69,7 +69,7 @@ public class StockController {
     }
 
     @PostMapping("/adjust")
-    @PreAuthorize("hasRole('WAREHOUSE')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'WAREHOUSE')")
     @Operation(summary = "Adjust stock quantity")
     public ApiResponse<Void> adjust(@Valid @RequestBody StockAdjustmentRequest request,
                                      @AuthenticationPrincipal UserDetails principal) {
@@ -88,7 +88,7 @@ public class StockController {
 
     private StockItemResponse toStockResponse(StockItem s) {
         return new StockItemResponse(
-                s.getId(), s.getProductId(),
+                s.getId(), s.getProductId(), null,
                 s.getWarehouse().getId(), s.getWarehouse().getName(),
                 s.getQuantityOnHand(), s.getQuantityReserved(),
                 s.getQuantityAvailable(), s.getLowStockThreshold());

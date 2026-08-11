@@ -13,6 +13,7 @@ const HomePage = lazy(() => import('@/pages/HomePage').then((m) => ({ default: m
 const LoginPage = lazy(() => import('@/features/authentication/pages/LoginPage').then((m) => ({ default: m.LoginPage })));
 const RegisterPage = lazy(() => import('@/features/authentication/pages/RegisterPage').then((m) => ({ default: m.RegisterPage })));
 const ForgotPasswordPage = lazy(() => import('@/features/authentication/pages/ForgotPasswordPage').then((m) => ({ default: m.ForgotPasswordPage })));
+const ResetPasswordPage = lazy(() => import('@/features/authentication/pages/ResetPasswordPage').then((m) => ({ default: m.ResetPasswordPage })));
 const ProductsPage = lazy(() => import('@/features/products/pages/ProductsPage').then((m) => ({ default: m.ProductsPage })));
 const ProductDetailPage = lazy(() => import('@/features/products/pages/ProductDetailPage').then((m) => ({ default: m.ProductDetailPage })));
 const CartPage = lazy(() => import('@/features/cart/pages/CartPage').then((m) => ({ default: m.CartPage })));
@@ -60,6 +61,13 @@ export const router = createBrowserRouter([
       { path: ROUTES.LOGIN, element: wrap(<LoginPage />) },
       { path: ROUTES.REGISTER, element: wrap(<RegisterPage />) },
       { path: ROUTES.FORGOT_PASSWORD, element: wrap(<ForgotPasswordPage />) },
+    ],
+  },
+
+  {
+    element: <AuthLayout />,
+    children: [
+      { path: ROUTES.RESET_PASSWORD, element: wrap(<ResetPasswordPage />) },
     ],
   },
 

@@ -39,8 +39,8 @@ import { isCancellable } from '@/utils/orderStatus';
 import { cancelOrderSchema, type CancelOrderFormValues } from '@/validators/orderValidators';
 import { useUiStore } from '@/store/uiStore';
 
-const ORDER_STEPS = ['CREATED', 'PAID', 'PROCESSING', 'PACKED', 'SHIPPED', 'DELIVERED'];
-const ALL_STATUSES: OrderStatus[] = ['CREATED', 'PENDING_PAYMENT', 'PAID', 'PROCESSING', 'PACKED', 'SHIPPED', 'DELIVERED', 'CANCELLED', 'REFUNDED'];
+const ORDER_STEPS = ['PENDING', 'CONFIRMED', 'PROCESSING', 'SHIPPED', 'DELIVERED'];
+const ALL_STATUSES: OrderStatus[] = ['PENDING', 'CONFIRMED', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCELLED', 'REFUNDED'];
 
 export function OrderDetailPage() {
   const { id } = useParams<{ id: string }>();

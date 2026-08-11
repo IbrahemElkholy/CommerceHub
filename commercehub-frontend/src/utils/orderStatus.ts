@@ -1,11 +1,9 @@
 import type { OrderStatus } from '@/features/orders/types';
 
 export const ORDER_STATUS_COLORS: Record<OrderStatus, 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning'> = {
-  CREATED: 'default',
-  PENDING_PAYMENT: 'warning',
-  PAID: 'info',
+  PENDING: 'warning',
+  CONFIRMED: 'info',
   PROCESSING: 'info',
-  PACKED: 'primary',
   SHIPPED: 'primary',
   DELIVERED: 'success',
   CANCELLED: 'error',
@@ -13,9 +11,8 @@ export const ORDER_STATUS_COLORS: Record<OrderStatus, 'default' | 'primary' | 's
 };
 
 export const CANCELLABLE_STATUSES: OrderStatus[] = [
-  'CREATED',
-  'PENDING_PAYMENT',
-  'PROCESSING',
+  'PENDING',
+  'CONFIRMED',
 ];
 
 export const isCancellable = (status: OrderStatus): boolean =>

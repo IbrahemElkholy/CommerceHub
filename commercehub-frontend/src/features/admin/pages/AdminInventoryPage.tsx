@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Container,
   Typography,
@@ -16,6 +16,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { DataTable, type Column } from '@/components/common/DataTable';
 import { adminService } from '../services/adminService';
+import { productService } from '@/features/products/services/productService';
 import { QUERY_KEYS } from '@/constants/queryKeys';
 import { useUiStore } from '@/store/uiStore';
 import type { StockItemResponse, StockAdjustmentRequest } from '../types';
@@ -31,6 +32,35 @@ export function AdminInventoryPage() {
     queryKey: QUERY_KEYS.INVENTORY.STOCK({ page }),
     queryFn: () => adminService.getStock({ page, size: 20 }),
   });
+
+  const productIds = useMemo(
+    () => [...new Set((data?.data.content ?? []).map((s) => s.productId))],
+    [data],
+  );
+
+  const { data: productMap } = useQuery({
+    queryKey: ['products', 'byIds', productIds],
+    queryFn: async () => {
+      const results = await Promise.allSettled(
+        productIds.map((id) => productService.getProductById(id)),
+      );
+      const map: Record<string, string> = {};
+      results.forEach((r, i) => {
+        if (r.status === 'fulfilled') map[productIds[i]] = r.value.name;
+      });
+      return map;
+    },
+    enabled: productIds.length > 0,
+  });
+
+  const enrichedRows = useMemo(
+    () =>
+      (data?.data.content ?? []).map((s) => ({
+        ...s,
+        productName: productMap?.[s.productId] ?? s.productId,
+      })),
+    [data, productMap],
+  );
 
   const { register, handleSubmit, reset, formState: { errors } } = useForm<{
     quantityDelta: number;
@@ -110,7 +140,7 @@ export function AdminInventoryPage() {
 
         <DataTable
           columns={columns}
-          rows={data?.data.content ?? []}
+          rows={enrichedRows}
           keyExtractor={(row) => `${row.productId}-${row.warehouseId}`}
           loading={isLoading}
           totalElements={data?.data.totalElements}

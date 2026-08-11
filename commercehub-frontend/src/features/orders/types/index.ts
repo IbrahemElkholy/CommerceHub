@@ -1,9 +1,7 @@
 export type OrderStatus =
-  | 'CREATED'
-  | 'PENDING_PAYMENT'
-  | 'PAID'
+  | 'PENDING'
+  | 'CONFIRMED'
   | 'PROCESSING'
-  | 'PACKED'
   | 'SHIPPED'
   | 'DELIVERED'
   | 'CANCELLED'
