@@ -1,0 +1,41 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/commercehub
+    username: commercehub
+    password: commercehub
+
+  jpa:
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+  cache:
+    type: simple
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: ""
+
+  mail:
+    host: localhost
+    port: 1025
+
+security:
+  jwt:
+    secret: "dev-secret-key-that-is-at-least-32-bytes-long-for-hmac-sha256-algorithm!!"
+    access-token-expiry: 900
+    refresh-token-expiry: 604800
+
+logging:
+  level:
+    root: INFO
+    com.commercehub: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.orm.jdbc.bind: TRACE
+
+springdoc:
+  swagger-ui:
+    try-it-out-enabled: true
