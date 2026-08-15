@@ -25,6 +25,7 @@ import { ErrorState } from '@/components/feedback/ErrorState';
 import { useDebounce } from '@/hooks/useDebounce';
 import { cartService } from '@/features/cart/services/cartService';
 import { wishlistService } from '@/features/wishlist/services/wishlistService';
+import type { WishlistItemResponse } from '@/features/wishlist/types';
 import { QUERY_KEYS } from '@/constants/queryKeys';
 import { useUiStore } from '@/store/uiStore';
 import { useAuth } from '@/hooks/useAuth';
@@ -74,7 +75,7 @@ export function ProductsPage() {
     onError: () => showSnackbar('Could not add to cart.', 'error'),
   });
 
-  const wishlistMutation = useMutation({
+  const wishlistMutation = useMutation<WishlistItemResponse | void, Error, string>({
     mutationFn: (productId: string) =>
       wishlistedIds.has(productId)
         ? wishlistService.removeFromWishlist(productId)

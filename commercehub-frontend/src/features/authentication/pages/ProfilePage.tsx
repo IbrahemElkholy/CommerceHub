@@ -34,6 +34,7 @@ import {
   type AddressFormValues,
 } from '@/validators/authValidators';
 import type { z } from 'zod';
+import type { UserResponse } from '../types';
 
 type ChangePasswordValues = z.infer<typeof changePasswordSchema>;
 
@@ -44,9 +45,9 @@ export function ProfilePage() {
   const [addressDialogOpen, setAddressDialogOpen] = useState(false);
   const [editingAddressId, setEditingAddressId] = useState<string | null>(null);
 
-  const { data: user } = useQuery({
+  const { data: user } = useQuery<UserResponse>({
     queryKey: QUERY_KEYS.USERS.ME,
-    queryFn: userService.getMe,
+    queryFn: () => userService.getMe(),
   });
 
   const { data: addresses } = useQuery({

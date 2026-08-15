@@ -21,7 +21,7 @@ import { formatDate, formatCurrency } from '@/utils/formatters';
 import type { OrderSummaryResponse, OrderStatus } from '@/features/orders/types';
 
 const STATUS_OPTIONS: OrderStatus[] = [
-  'CREATED', 'PENDING_PAYMENT', 'PAID', 'PROCESSING', 'PACKED', 'SHIPPED', 'DELIVERED', 'CANCELLED', 'REFUNDED',
+  'PENDING', 'CONFIRMED', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCELLED', 'REFUNDED',
 ];
 
 export function AdminOrdersPage() {

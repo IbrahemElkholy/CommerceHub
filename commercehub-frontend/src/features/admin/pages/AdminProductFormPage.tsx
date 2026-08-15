@@ -184,7 +184,7 @@ export function AdminProductFormPage() {
               <TextField
                 label="Price (USD)"
                 type="number"
-                inputProps={{ step: '0.01', min: '0' }}
+                slotProps={{ htmlInput: { step: '0.01', min: '0' } }}
                 {...register('price', { required: 'Price is required' })}
                 error={!!errors.price}
                 helperText={errors.price?.message}

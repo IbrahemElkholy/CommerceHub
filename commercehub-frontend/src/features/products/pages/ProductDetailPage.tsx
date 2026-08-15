@@ -27,6 +27,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useProduct, useProductReviews } from '../hooks/useProducts';
 import { cartService } from '@/features/cart/services/cartService';
 import { wishlistService } from '@/features/wishlist/services/wishlistService';
+import type { WishlistItemResponse } from '@/features/wishlist/types';
 import { productService } from '../services/productService';
 import { ErrorState } from '@/components/feedback/ErrorState';
 import { PriceDisplay } from '@/components/common/PriceDisplay';
@@ -69,7 +70,7 @@ export function ProductDetailPage() {
     onError: () => showSnackbar('Could not add to cart.', 'error'),
   });
 
-  const wishlistMutation = useMutation({
+  const wishlistMutation = useMutation<WishlistItemResponse | void>({
     mutationFn: () =>
       isWishlisted ? wishlistService.removeFromWishlist(id!) : wishlistService.addToWishlist(id!),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: QUERY_KEYS.WISHLIST.MY }),
